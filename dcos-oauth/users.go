@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -12,7 +11,7 @@ import (
 	"github.com/samuel/go-zookeeper/zk"
 	"golang.org/x/net/context"
 
-	"github.com/dcos/dcos-oauth/common"
+	"github.com/stratio/paas-oauth/common"
 )
 
 var httpClient = &http.Client{
@@ -131,9 +130,6 @@ func putUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) *comm
 
 	log.Debugf("User created: %+v\n", uid)
 
-	segmentKey := ctx.Value("segment-key").(string)
-	go newUserEmail(segmentKey, uid, &user)
-
 	return nil
 }
 
@@ -159,61 +155,6 @@ type trackRequest struct {
 	Event string `json:"event"`
 
 	Properties trackProperties `json:"properties"`
-}
-
-func segmentRequest(segmentKey string, urlStr string, v interface{}) error {
-	b, err := json.Marshal(v)
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", urlStr, bytes.NewBuffer(b))
-	if err != nil {
-		return err
-	}
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Content-Length", string(len(b)))
-	req.SetBasicAuth(segmentKey, "")
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	return nil
-}
-
-// newUserEmail sends an invitiation email with the best known link to the
-// cluster using Segment.
-func newUserEmail(segmentKey string, uid string, user *User) {
-	idReq := identifyRequest{
-		UserId: uid,
-		Traits: identifyTraits{
-			Email: uid,
-		},
-	}
-
-	err := segmentRequest(segmentKey, "https://api.segment.io/v1/identify", idReq)
-	if err != nil {
-		log.Infof("newUserEmail: %v", err)
-		return
-	}
-
-	trackReq := trackRequest{
-		UserId: uid,
-		Event:  "added_to_cluster",
-		Properties: trackProperties{
-			ParentEmail: user.CreatorUid,
-			ClusterURL:  user.ClusterURL,
-			ClusterID:   clusterId(),
-		},
-	}
-	err = segmentRequest(segmentKey, "https://api.segment.io/v1/track", trackReq)
-	if err != nil {
-		log.Infof("newUserEmail: %v", err)
-		return
-	}
 }
 
 func deleteUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) *common.HttpError {

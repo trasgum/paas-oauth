@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/dcos/dcos-oauth/common"
+	"github.com/stratio/paas-oauth/common"
 
 	"golang.org/x/net/context"
 )

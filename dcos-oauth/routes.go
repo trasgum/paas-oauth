@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/dcos/dcos-oauth/common"
+	"github.com/stratio/paas-oauth/common"
 )
 
 var routes = map[string]map[string]common.Handler{

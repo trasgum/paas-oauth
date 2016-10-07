@@ -13,7 +13,7 @@ import (
 	"github.com/coreos/go-oidc/jose"
 	"github.com/samuel/go-zookeeper/zk"
 	"github.com/coreos/go-oidc/oauth2"
-	"github.com/dcos/dcos-oauth/common"
+	"github.com/stratio/paas-oauth/common"
 )
 
 type loginRequest struct {

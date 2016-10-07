@@ -6,7 +6,7 @@ import (
 	"github.com/codegangsta/cli"
 	"golang.org/x/net/context"
 
-	"github.com/dcos/dcos-oauth/common"
+	"github.com/stratio/paas-oauth/common"
 )
 
 func main() {

@@ -1,5 +1,5 @@
 {
-	"ImportPath": "github.com/dcos/dcos-oauth",
+	"ImportPath": "github.com/stratio/paas-oauth",
 	"GoVersion": "go1.6",
 	"GodepVersion": "v60",
 	"Packages": [
