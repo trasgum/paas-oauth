@@ -3,7 +3,7 @@ REVISION := $(shell git describe --tags --always --dirty="-dev")
 
 export GO15VENDOREXPERIMENT=1
 
-LDFLAGS := -X github.com/dcos/dcos-oauth/version.REVISION=$(REVISION)
+LDFLAGS := -X github.com/stratio/paas-oauth/version.REVISION=$(REVISION)
 
 install:
 	go install -v -tags '$(TAGS)' -ldflags '$(LDFLAGS)' ./...

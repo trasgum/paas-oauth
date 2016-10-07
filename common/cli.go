@@ -5,7 +5,7 @@ import (
 	"os"
 
 	"github.com/codegangsta/cli"
-	"github.com/dcos/dcos-oauth/version"
+	"github.com/stratio/paas-oauth/version"
 )
 
 func Run(name string, commands ...cli.Command) {
