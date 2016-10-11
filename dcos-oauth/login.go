@@ -1,6 +1,7 @@
 package main
 
 import (
+	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
@@ -8,12 +9,12 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"crypto/tls"
-	"golang.org/x/net/context"
+
 	"github.com/coreos/go-oidc/jose"
-	"github.com/samuel/go-zookeeper/zk"
 	"github.com/coreos/go-oidc/oauth2"
+	"github.com/samuel/go-zookeeper/zk"
 	"github.com/stratio/paas-oauth/common"
+	"golang.org/x/net/context"
 )
 
 type loginRequest struct {
@@ -33,7 +34,7 @@ type secondStruct struct {
 }
 
 type testStruct struct {
-	Clip [] secondStruct `json:"attributes"`
+	Clip []secondStruct `json:"attributes"`
 }
 
 func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *common.HttpError {
@@ -44,8 +45,8 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 
 	token, err := o2cli.RequestToken(oauth2.GrantTypeAuthCode, code[0])
 
-	if err!=nil{
-		log.Print("error %w",err)
+	if err != nil {
+		log.Print("error %w", err)
 	}
 
 	log.Printf("Token: %+v", token)
@@ -55,35 +56,34 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	}
 	client := &http.Client{Transport: tr}
 
-
 	profileUrl := ctx.Value("oauth-profile-url").(string) + token.AccessToken
 
 	log.Printf("Getting profile: %s", profileUrl)
-	
+
 	resp, err := client.Get(profileUrl)
 
-	if err!=nil {
-		log.Print("error %w",err)
+	if err != nil {
+		log.Print("error %w", err)
 	}
 
 	defer resp.Body.Close()
 
 	contents, err := ioutil.ReadAll(resp.Body)
 
-	if err!=nil {
-		log.Print("error %w",err)
+	if err != nil {
+		log.Print("error %w", err)
 	}
 
 	log.Printf("Profile: %s", contents)
 
 	var um testStruct
-	err = json.Unmarshal([]byte(contents),&um)
+	err = json.Unmarshal([]byte(contents), &um)
 
-	if err!=nil {
-		log.Print("error %w",err)
+	if err != nil {
+		log.Print("error %w", err)
 	}
 
-	uid:=um.Clip[1].Mail
+	uid := um.Clip[1].Mail
 	c := ctx.Value("zk").(*zk.Conn)
 
 	users, _, err := c.Children("/dcos/users")
@@ -129,7 +129,6 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		HttpOnly: true,
 		Expires:  expiresTime,
 		MaxAge:   cookieMaxAge,
-		Domain: ".m1.dcos",
 	}
 	http.SetCookie(w, authCookie)
 
@@ -149,7 +148,6 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		Path:    "/",
 		Expires: expiresTime,
 		MaxAge:  cookieMaxAge,
-		Domain: ".m1.dcos",
 	}
 	http.SetCookie(w, infoCookie)
 
@@ -177,7 +175,6 @@ func handleLogout(ctx context.Context, w http.ResponseWriter, r *http.Request) *
 
 	return nil
 }
-
 
 func oauth2Client(ctx context.Context) *oauth2.Client {
 	key := ctx.Value("oauth-app-key").(string)
