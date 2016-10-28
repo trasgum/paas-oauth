@@ -154,7 +154,7 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 
 	//json.NewEncoder(w).Encode(loginResponse{Token: encodedClusterToken})
 
-	http.Redirect(w, r, "http://"+strings.Split(r.Host,":")[0], http.StatusMovedPermanently)
+	http.Redirect(w, r, "https://"+strings.Split(r.Host,":")[0], http.StatusFound)
 
 	return nil
 }
