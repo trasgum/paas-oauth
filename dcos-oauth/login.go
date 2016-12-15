@@ -9,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"time"
-	"strings"
 
 	"github.com/coreos/go-oidc/jose"
 	"github.com/coreos/go-oidc/oauth2"
@@ -154,7 +153,8 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 
 	//json.NewEncoder(w).Encode(loginResponse{Token: encodedClusterToken})
 
-	http.Redirect(w, r, "https://"+strings.Split(r.Host,":")[0], http.StatusFound)
+	//http.Redirect(w, r, "https://"+strings.Split(r.Host,":")[0], http.StatusFound)
+	http.Redirect(w, r, "https://"+r.Host, http.StatusFound)
 
 	return nil
 }
