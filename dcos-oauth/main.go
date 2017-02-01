@@ -16,7 +16,7 @@ func main() {
 		Usage:     "Serve the API",
 		Flags:     []cli.Flag{common.FlAddr, common.FlZkAddr, flIssuerURL, flClientID, flSecretKeyPath,
 		flSegmentKey, flOauthAppKey, flOauthAppSecret, flOauthTokenUrl, flOauthAuthUrl,
-		flOauthProfileUrl,flOauthCallbackUrl},
+		flOauthProfileUrl,flOauthCallbackUrl,flAuthorizedRole},
 		Action:    action(serveAction),
 	}
 
@@ -35,6 +35,7 @@ func serveAction(c *cli.Context) error {
 	ctx = context.WithValue(ctx, "oauth-auth-url", c.String("oauth-auth-url"))
 	ctx = context.WithValue(ctx, "oauth-callback-url", c.String("oauth-callback-url"))
 	ctx = context.WithValue(ctx, "oauth-profile-url", c.String("oauth-profile-url"))
+	ctx = context.WithValue(ctx, "authorized-role", c.String("authorized-role"))
 
 	secretKey, err := common.ReadLine(c.String("secret-key-path"))
 	if err != nil {

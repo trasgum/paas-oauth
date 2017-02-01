@@ -60,4 +60,9 @@ var (
 		Usage: "profile url",
 		Value: "https://oauth/profile?access_token=",
 	}
+	flAuthorizedRole = cli.StringFlag{
+		Name: "authorized-role",
+		Usage: "authorized role. Default 'admin'",
+		Value: "admin",
+	}
 )

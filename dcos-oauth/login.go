@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/coreos/go-oidc/jose"
 	"github.com/coreos/go-oidc/oauth2"
-	"github.com/samuel/go-zookeeper/zk"
 	"github.com/stratio/paas-oauth/common"
 	"golang.org/x/net/context"
 )
@@ -29,12 +27,15 @@ type loginResponse struct {
 	Token string `json:"token,omitempty"`
 }
 
-type secondStruct struct {
+type profileAttributesStruct struct {
 	Mail string `json:"mail"`
+
+	Roles []string `json:"roles"`
 }
 
-type testStruct struct {
-	Clip []secondStruct `json:"attributes"`
+type profileStruct struct {
+        Id string `json:"id"`
+	Attributes []profileAttributesStruct `json:"attributes"`
 }
 
 func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *common.HttpError {
@@ -76,38 +77,43 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 
 	log.Printf("Profile: %s", contents)
 
-	var um testStruct
+	var um profileStruct
 	err = json.Unmarshal([]byte(contents), &um)
 
 	if err != nil {
 		log.Print("error %w", err)
 	}
 
-	uid := um.Clip[1].Mail
-	c := ctx.Value("zk").(*zk.Conn)
+        var mail string
+        var roles []string
 
-	users, _, err := c.Children("/dcos/users")
-	if err != nil && err != zk.ErrNoNode {
-		return common.NewHttpError("invalid email", http.StatusInternalServerError)
-	}
-
-	userPath := fmt.Sprintf("/dcos/users/%s", uid)
-	if len(users) == 0 {
-		// create first user
-		log.Printf("creating first user %v", uid)
-		err = common.CreateParents(c, userPath, []byte(uid))
-		if err != nil {
-			return common.NewHttpError("Zookeeper error", http.StatusInternalServerError)
+	// Look for user attributes: mail and roles
+	for _, val := range um.Attributes {
+		if val.Mail != "" {
+			mail = val.Mail
+		}
+		if val.Roles != nil {
+			roles = val.Roles
 		}
 	}
 
-	exists, _, err := c.Exists(userPath)
-	if err != nil || !exists {
-		return common.NewHttpError("User unauthorized", http.StatusUnauthorized)
+	// check if user is authorized
+	authorized_role := ctx.Value("authorized-role").(string)
+	authorized := false
+        log.Printf("UserID: %s, Mail: %s, Roles: %v" , um.Id, mail, roles)
+	for _, val := range roles {
+		if val == authorized_role {
+			log.Printf("authorized role!!: %s", val)
+			authorized = true
+		}
 	}
+	if !authorized {
+		return common.NewHttpError("User " + mail + " unauthorized (missing role: " + authorized_role + ")", http.StatusUnauthorized)
+	}
+	
 
 	claims := jose.Claims{
-		"uid": uid,
+		"uid": mail,
 	}
 
 	secretKey, _ := ctx.Value("secret-key").([]byte)
@@ -133,9 +139,9 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	http.SetCookie(w, authCookie)
 
 	user := User{
-		Uid:         uid,
-		Description: uid,
-		IsRemote:    false,
+		Uid:         mail,
+	//	Description: uid,
+	//	IsRemote:    false,
 	}
 	userBytes, err := json.Marshal(user)
 	if err != nil {
@@ -151,9 +157,6 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	}
 	http.SetCookie(w, infoCookie)
 
-	//json.NewEncoder(w).Encode(loginResponse{Token: encodedClusterToken})
-
-	//http.Redirect(w, r, "https://"+strings.Split(r.Host,":")[0], http.StatusFound)
 	http.Redirect(w, r, "https://"+r.Host, http.StatusFound)
 
 	return nil
