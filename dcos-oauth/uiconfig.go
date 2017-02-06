@@ -8,7 +8,6 @@ import (
 	"strings"
 
 	log "github.com/Sirupsen/logrus"
-	"github.com/samuel/go-zookeeper/zk"
 	"golang.org/x/net/context"
 
 	"github.com/stratio/paas-oauth/common"
@@ -32,13 +31,8 @@ func handleUIConfig(ctx context.Context, w http.ResponseWriter, r *http.Request)
 		return common.NewHttpError("JSON decode error", http.StatusInternalServerError)
 	}
 
-	c := ctx.Value("zk").(common.IZk)
-	users, _, err := c.Children("/dcos/users")
-	if err != nil && err != zk.ErrNoNode {
-		return common.NewHttpError("zookeeper error", http.StatusInternalServerError)
-	}
 	clusterCfg := make(map[string]interface{})
-	clusterCfg["firstUser"] = len(users) == 0
+	clusterCfg["firstUser"] = false
 	clusterCfg["id"] = clusterId()
 	cfg["clusterConfiguration"] = clusterCfg
 

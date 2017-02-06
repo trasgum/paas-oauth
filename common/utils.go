@@ -4,16 +4,7 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/samuel/go-zookeeper/zk"
 )
-
-type IZk interface {
-	Children(path string) ([]string, *zk.Stat, error)
-	Create(path string, data []byte, flags int32, acl []zk.ACL) (string, error)
-	Delete(path string, version int32) error
-	Exists(path string) (bool, *zk.Stat, error)
-	Get(path string) ([]byte, *zk.Stat, error)
-}
 
 type HttpError struct {
 	Title       string `json:"title"`

@@ -100,20 +100,21 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	// check if user is authorized
 	authorized_role := ctx.Value("authorized-role").(string)
 	authorized := false
-        log.Printf("UserID: %s, Mail: %s, Roles: %v" , um.Id, mail, roles)
 	for _, val := range roles {
 		if val == authorized_role {
-			log.Printf("authorized role!!: %s", val)
 			authorized = true
 		}
 	}
 	if !authorized {
 		return common.NewHttpError("User " + mail + " unauthorized (missing role: " + authorized_role + ")", http.StatusUnauthorized)
 	}
-	
+	const cookieMaxAge = 3600
+	// required for IE 6, 7 and 8
+	expiresTime := time.Now().Add(cookieMaxAge * time.Second)
 
 	claims := jose.Claims{
 		"uid": mail,
+		"exp": expiresTime.Unix(),
 	}
 
 	secretKey, _ := ctx.Value("secret-key").([]byte)
@@ -124,10 +125,6 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	}
 	encodedClusterToken := clusterToken.Encode()
 
-	const cookieMaxAge = 388800
-	// required for IE 6, 7 and 8
-	expiresTime := time.Now().Add(cookieMaxAge * time.Second)
-
 	authCookie := &http.Cookie{
 		Name:     "dcos-acs-auth-cookie",
 		Value:    encodedClusterToken,
@@ -135,13 +132,13 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		HttpOnly: true,
 		Expires:  expiresTime,
 		MaxAge:   cookieMaxAge,
+		Secure: true,
 	}
 	http.SetCookie(w, authCookie)
 
 	user := User{
-		Uid:         mail,
-	//	Description: uid,
-	//	IsRemote:    false,
+		Uid:         um.Id,
+		Description: um.Id,
 	}
 	userBytes, err := json.Marshal(user)
 	if err != nil {
@@ -154,6 +151,8 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		Path:    "/",
 		Expires: expiresTime,
 		MaxAge:  cookieMaxAge,
+		HttpOnly: true,
+		Secure: true,
 	}
 	http.SetCookie(w, infoCookie)
 

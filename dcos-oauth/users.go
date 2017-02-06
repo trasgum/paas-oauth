@@ -9,6 +9,7 @@ import (
 
 type User struct {
         Uid         string `json:"uid,omitempty"`
+	Description string `json:"description,omitempty"`
 }
 
 func getUsers(ctx context.Context, w http.ResponseWriter, r *http.Request) *common.HttpError {

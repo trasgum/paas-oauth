@@ -14,7 +14,7 @@ func main() {
 		Name:      "serve",
 		ShortName: "s",
 		Usage:     "Serve the API",
-		Flags:     []cli.Flag{common.FlAddr, common.FlZkAddr, flIssuerURL, flClientID, flSecretKeyPath,
+		Flags:     []cli.Flag{common.FlAddr, flIssuerURL, flClientID, flSecretKeyPath,
 		flSegmentKey, flOauthAppKey, flOauthAppSecret, flOauthTokenUrl, flOauthAuthUrl,
 		flOauthProfileUrl,flOauthCallbackUrl,flAuthorizedRole},
 		Action:    action(serveAction),
@@ -42,9 +42,6 @@ func serveAction(c *cli.Context) error {
 		return err
 	}
 	ctx = context.WithValue(ctx, "secret-key", secretKey)
-
-	// TODO not used everywhere yet
-	ctx = context.WithValue(ctx, "zk-path", "/dcos/users")
 
 	return common.ServeCmd(c, ctx, routes)
 }
