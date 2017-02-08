@@ -151,7 +151,6 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		Path:    "/",
 		Expires: expiresTime,
 		MaxAge:  cookieMaxAge,
-		HttpOnly: true,
 		Secure: true,
 	}
 	http.SetCookie(w, infoCookie)
