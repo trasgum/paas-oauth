@@ -65,4 +65,9 @@ var (
 		Usage: "authorized role. Default 'admin'",
 		Value: "admin",
 	}
+	flDomain = cli.StringFlag{
+		Name: "domain",
+		Usage: "Domain to be set in cookies (multimaster purpose). Optional",
+		Value: "",
+	}
 )

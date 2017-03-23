@@ -108,7 +108,7 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	if !authorized {
 		return common.NewHttpError("User " + mail + " unauthorized (missing role: " + authorized_role + ")", http.StatusUnauthorized)
 	}
-	const cookieMaxAge = 3600
+	const cookieMaxAge = 3600 * 6 // 6 hours
 	// required for IE 6, 7 and 8
 	expiresTime := time.Now().Add(cookieMaxAge * time.Second)
 
@@ -125,6 +125,8 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	}
 	encodedClusterToken := clusterToken.Encode()
 
+	domain := ctx.Value("domain").(string)
+
 	authCookie := &http.Cookie{
 		Name:     "dcos-acs-auth-cookie",
 		Value:    encodedClusterToken,
@@ -134,6 +136,11 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		MaxAge:   cookieMaxAge,
 		Secure: true,
 	}
+
+	if domain != "" {
+		authCookie.Domain = domain
+	}
+
 	http.SetCookie(w, authCookie)
 
 	user := User{
@@ -153,6 +160,11 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		MaxAge:  cookieMaxAge,
 		Secure: true,
 	}
+
+        if domain != "" {
+                infoCookie.Domain = domain
+        }
+
 	http.SetCookie(w, infoCookie)
 
 	http.Redirect(w, r, "https://"+r.Host, http.StatusFound)
@@ -173,6 +185,10 @@ func handleLogout(ctx context.Context, w http.ResponseWriter, r *http.Request) *
 			Expires:  expiresTime,
 			MaxAge:   -1,
 		}
+                domain := ctx.Value("domain").(string)
+                if domain != "" {
+                        cookie.Domain = domain
+                }
 
 		http.SetCookie(w, cookie)
 	}
