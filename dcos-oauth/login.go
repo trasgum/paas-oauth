@@ -126,11 +126,12 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	encodedClusterToken := clusterToken.Encode()
 
 	domain := ctx.Value("domain").(string)
+	path := ctx.Value("path").(string)
 
 	authCookie := &http.Cookie{
 		Name:     "dcos-acs-auth-cookie",
 		Value:    encodedClusterToken,
-		Path:     "/",
+		Path:     path,
 		HttpOnly: true,
 		Expires:  expiresTime,
 		MaxAge:   cookieMaxAge,
@@ -155,7 +156,7 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	infoCookie := &http.Cookie{
 		Name:    "dcos-acs-info-cookie",
 		Value:   base64.URLEncoding.EncodeToString(userBytes),
-		Path:    "/",
+		Path:    path,
 		Expires: expiresTime,
 		MaxAge:  cookieMaxAge,
 		Secure: true,
@@ -177,15 +178,16 @@ func handleLogout(ctx context.Context, w http.ResponseWriter, r *http.Request) *
 	expiresTime := time.Unix(1, 0)
 
 	for _, name := range []string{"dcos-acs-auth-cookie", "dcos-acs-info-cookie"} {
+                domain := ctx.Value("domain").(string)
+                path := ctx.Value("path").(string)
 		cookie := &http.Cookie{
 			Name:     name,
 			Value:    "",
-			Path:     "/",
+			Path:     path,
 			HttpOnly: true,
 			Expires:  expiresTime,
 			MaxAge:   -1,
 		}
-                domain := ctx.Value("domain").(string)
                 if domain != "" {
                         cookie.Domain = domain
                 }
