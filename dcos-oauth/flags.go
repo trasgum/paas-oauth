@@ -67,7 +67,12 @@ var (
 	}
 	flDomain = cli.StringFlag{
 		Name: "domain",
-		Usage: "Domain to be set in cookies (multimaster purpose). Optional",
+		Usage: "Domain to be set in cookies (multimaster purpose). Optional. Default value: empty string",
 		Value: "",
+	}
+	flPath = cli.StringFlag{
+		Name: "path",
+		Usage: "Path to be set in cookies (multimaster purpose). Optional. Default value: /",
+		Value: "/",
 	}
 )
