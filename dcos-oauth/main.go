@@ -7,6 +7,7 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/stratio/paas-oauth/common"
+	log "github.com/Sirupsen/logrus"
 )
 
 func main() {
@@ -19,7 +20,7 @@ func main() {
 		flOauthProfileUrl,flOauthCallbackUrl,flAuthorizedRole,flDomain,flPath},
 		Action:    action(serveAction),
 	}
-
+	log.Info("Starting command...")
 	common.Run("dcos-oauth", serveCommand)
 }
 
@@ -41,10 +42,12 @@ func serveAction(c *cli.Context) error {
 
 	secretKey, err := common.ReadLine(c.String("secret-key-path"))
 	if err != nil {
+		log.WithError(err)
 		return err
 	}
 	ctx = context.WithValue(ctx, "secret-key", secretKey)
 
+	log.Info("Starting server...")
 	return common.ServeCmd(c, ctx, routes)
 }
 

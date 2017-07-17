@@ -5,21 +5,20 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
 	"github.com/coreos/go-oidc/jose"
 	"github.com/coreos/go-oidc/oauth2"
 	"github.com/stratio/paas-oauth/common"
 	"golang.org/x/net/context"
+	"regexp"
 )
 
 type loginRequest struct {
 	Uid string `json:"uid,omitempty"`
-
 	Password string `json:"password,omitempty"`
-
 	Token string `json:"token,omitempty"`
 }
 
@@ -29,7 +28,6 @@ type loginResponse struct {
 
 type profileAttributesStruct struct {
 	Mail string `json:"mail"`
-
 	Roles []string `json:"roles"`
 }
 
@@ -40,31 +38,44 @@ type profileStruct struct {
 
 func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *common.HttpError {
 	code := r.URL.Query()["code"]
-	log.Printf("Code: %s", code)
+
+	defer func() {
+		if r:= recover(); r != nil {
+			log.Error("Error creating oauth2 client")
+		}
+	}()
+
+	if len(code) != 1 {
+		return common.NewHttpError("Only one code is allowed", http.StatusBadRequest)
+	}
+
+	matchCode, err := regexp.MatchString(`^ST-.{2}-[\s\S]{20}-.{1,30}`, code[0])
+	if matchCode == false || err != nil {
+		return common.NewHttpError("Unformated paramter code", http.StatusBadRequest)
+	}
 
 	o2cli := oauth2Client(ctx)
 
+	log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).Debug("Requesting OAuth Token...")
 	token, err := o2cli.RequestToken(oauth2.GrantTypeAuthCode, code[0])
 
 	if err != nil {
-		log.Print("error %w", err)
+		log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).WithError(err)
 	}
 
-	log.Printf("Token: %+v", token)
-
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: false,
+					     MinVersion: tls.VersionTLS11,
+		},
 	}
 	client := &http.Client{Transport: tr}
 
 	profileUrl := ctx.Value("oauth-profile-url").(string) + token.AccessToken
 
-	log.Printf("Getting profile: %s", profileUrl)
-
 	resp, err := client.Get(profileUrl)
 
 	if err != nil {
-		log.Print("error %w", err)
+		log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).WithError(err)
 	}
 
 	defer resp.Body.Close()
@@ -72,16 +83,14 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	contents, err := ioutil.ReadAll(resp.Body)
 
 	if err != nil {
-		log.Print("error %w", err)
+		log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).WithError(err)
 	}
-
-	log.Printf("Profile: %s", contents)
 
 	var um profileStruct
 	err = json.Unmarshal([]byte(contents), &um)
 
 	if err != nil {
-		log.Print("error %w", err)
+		log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).WithError(err)
 	}
 
         var mail string
@@ -106,7 +115,7 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 		}
 	}
 	if !authorized {
-		return common.NewHttpError("User " + mail + " unauthorized (missing role: " + authorized_role + ")", http.StatusUnauthorized)
+		return common.NewHttpError("User " + mail + " unauthorized (missing role)", http.StatusUnauthorized)
 	}
 	const cookieMaxAge = 3600 * 6 // 6 hours
 	// required for IE 6, 7 and 8
@@ -150,7 +159,7 @@ func handleLogin(ctx context.Context, w http.ResponseWriter, r *http.Request) *c
 	}
 	userBytes, err := json.Marshal(user)
 	if err != nil {
-		log.Printf("Marshal: %v", err)
+		log.WithFields(log.Fields{"method": r.Method, "uri": r.RequestURI}).WithError(err)
 		return common.NewHttpError("JSON marshalling failed", http.StatusInternalServerError)
 	}
 	infoCookie := &http.Cookie{
@@ -204,7 +213,6 @@ func oauth2Client(ctx context.Context) *oauth2.Client {
 	tokenUrl := ctx.Value("oauth-token-url").(string)
 	authUrl := ctx.Value("oauth-auth-url").(string)
 	callbackUrl := ctx.Value("oauth-callback-url").(string)
-
 	conf := oauth2.Config{
 		Credentials: oauth2.ClientCredentials{ID: key, Secret: secret},
 		TokenURL:    tokenUrl,
@@ -214,7 +222,9 @@ func oauth2Client(ctx context.Context) *oauth2.Client {
 	}
 
 	tr := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: false,
+			MinVersion: tls.VersionTLS11,
+		},
 	}
 	client := &http.Client{Transport: tr}
 
